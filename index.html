@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1f2c34">
-    <title>RampaGPT v1.9</title>
+    <title>RampaGPT v2.0</title>
     
-    <!-- Стили -->
+    <!-- Стили подсветки кода -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
 
     <style>
@@ -38,7 +38,8 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 100;
             height: 60px; flex-shrink: 0;
         }
-        h1 { margin: 0; font-size: 19px; color: #00a884; font-weight: 700; }
+        h1 { margin: 0; font-size: 20px; color: #fff; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .logo-icon { font-size: 24px; }
         .header-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #aebac1; margin-left: 15px;}
 
         /* ЧАТ */
@@ -59,15 +60,17 @@
         .ai-container { align-self: flex-start; }
 
         .message { 
-            padding: 10px 14px; border-radius: 12px; 
+            padding: 12px 16px; border-radius: 12px; 
             font-size: 15px; line-height: 1.5; word-wrap: break-word;
         }
         .user { background-color: #005c4b; color: #fff; border-bottom-right-radius: 2px; }
         .ai { background-color: #202c33; color: #fff; border-bottom-left-radius: 2px; min-width: 150px;}
         
-        .ai pre { background: #181818 !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; }
+        /* КОД */
+        .ai pre { background: #121212 !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid #333; }
         .ai code { font-family: monospace; font-size: 13px; }
-        
+        .ai p code { background: #333; padding: 2px 5px; border-radius: 4px; color: #ff7b72; }
+
         .copy-btn {
             background: #2a3942; border: 1px solid #444; color: #ccc;
             font-size: 11px; padding: 6px 12px; border-radius: 6px;
@@ -114,14 +117,13 @@
 </head>
 <body>
 
-    <!-- ЗАГРУЗЧИК -->
     <div id="loader">
         <div class="spinner"></div>
-        <div style="color: #00a884;">Загрузка системы...</div>
+        <div style="color: #00a884;">Загрузка модулей...</div>
     </div>
 
     <header>
-        <h1>RampaGPT</h1>
+        <h1><span class="logo-icon">🤖</span> RampaGPT</h1>
         <div>
             <button class="header-btn" onclick="toggleSettings()">⚙️</button>
             <button class="header-btn" onclick="clearHistory()">🗑️</button>
@@ -133,15 +135,13 @@
         <input type="text" id="system-prompt" value="Ты умный ассистент." placeholder="Роль...">
         <button class="save-btn" onclick="toggleSettings()">Сохранить</button>
         
-        <!-- КНОПКА ПОДДЕРЖАТЬ (Вставь свою ссылку!) -->
         <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
-        <p style="color: #ccc; font-size: 12px; text-align: center;">Нравится проект?</p>
+        <p style="color: #ccc; font-size: 12px; text-align: center;">Понравилось?</p>
         <button class="save-btn" style="background: #ff8800; color: white;" onclick="window.open('https://www.donationalerts.com/r/scybon')">☕ Поддержать автора</button>
     </div>
 
-    <div id="chat-box" onscroll="checkScroll()"></div>
+    <div id="chat-box"></div>
     <div id="toast"></div>
-    
     <div id="scroll-btn" onclick="forceScrollBottom()">⬇</div>
 
     <div class="footer-container">
@@ -159,17 +159,18 @@
         </div>
     </div>
 
+    <!-- Библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 
     <script>
         const WORKER_URL = "https://delicate-limit-15a4.dimpstik12.workers.dev";
-        const STORAGE_KEY = 'rampa_public_v1_9';
+        const STORAGE_KEY = 'rampa_v2_0_final';
         
         let conversationHistory = [];
         let isUserScrolling = false; 
 
-        // Ожидание библиотек
+        // Инициализация
         let checkInterval = setInterval(() => {
             if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
                 clearInterval(checkInterval);
@@ -198,13 +199,15 @@
                 try {
                     conversationHistory = JSON.parse(saved);
                     conversationHistory.forEach(msg => {
-                        if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, false);
+                        // ПРИНУДИТЕЛЬНЫЙ РЕНДЕР HTML ПРИ ЗАГРУЗКЕ
+                        // Это решает проблему "черного текста" после перезахода
+                        if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, true); 
                     });
                 } catch(e) {}
                 setTimeout(forceScrollBottom, 100);
             } else {
                 conversationHistory = [{ role: "system", content: document.getElementById('system-prompt').value }];
-                appendMessageToUI('assistant', 'Привет! Я RampaGPT. Готов помочь!', false);
+                appendMessageToUI('assistant', 'Привет! Я RampaGPT. Как я могу помочь?', true);
             }
         }
 
@@ -213,7 +216,8 @@
             if (!text) return;
 
             document.getElementById('user-input').value = '';
-            appendMessageToUI('user', text, false);
+            // Пользователя рендерим сразу как HTML
+            appendMessageToUI('user', text, true);
             forceScrollBottom();
 
             conversationHistory.push({ role: "user", content: text });
@@ -221,7 +225,9 @@
             
             document.getElementById('send-btn').disabled = true;
             document.getElementById('status-bar').style.display = "flex"; 
-            isUserScrolling = false;
+            
+            // Сбрасываем скролл, так как начинаем писать
+            isUserScrolling = false; 
 
             conversationHistory[0] = { role: "system", content: document.getElementById('system-prompt').value };
 
@@ -236,27 +242,36 @@
                 document.getElementById('status-bar').style.display = "none";
 
                 if (data.error) {
-                    appendMessageToUI('assistant', `Ошибка сервера: ${data.error.message || JSON.stringify(data.error)}`, false);
+                    appendMessageToUI('assistant', `Ошибка: ${data.error.message || 'Server Error'}`, true);
                 } else {
                     const aiContent = data.choices[0].message.content;
                     conversationHistory.push({ role: "assistant", content: aiContent });
                     saveToStorage();
 
-                    const msgDiv = appendMessageToUI('assistant', '', true);
+                    // Создаем блок для ответа (пока пустой)
+                    const msgDiv = appendMessageToUI('assistant', '', false); // false = не рендерить пока
+                    
                     let i = 0; let currentText = "";
                     
                     function typeWriter() {
                         if (i < aiContent.length) {
                             currentText += aiContent.charAt(i);
+                            // Печатаем как текст (быстро и не лагает)
                             msgDiv.innerText = currentText; 
+                            
+                            // Умный скролл: если юзер не отвел палец, скроллим
                             if (!isUserScrolling) {
                                 const box = document.getElementById('chat-box');
                                 box.scrollTop = box.scrollHeight;
                             }
+                            
                             i++;
+                            // Очень быстрая скорость
                             setTimeout(typeWriter, 1);
                         } else {
+                            // ФИНАЛ: Превращаем текст в код
                             msgDiv.innerHTML = marked.parse(aiContent);
+                            
                             document.getElementById('send-btn').disabled = false;
                             
                             const btn = msgDiv.parentElement.querySelector('.copy-btn');
@@ -269,7 +284,7 @@
                 }
             } catch (err) {
                 document.getElementById('status-bar').style.display = "none";
-                appendMessageToUI('assistant', 'Ошибка сети.', false);
+                appendMessageToUI('assistant', 'Ошибка сети.', true);
                 document.getElementById('send-btn').disabled = false;
             }
         }
@@ -288,30 +303,30 @@
             document.body.removeChild(a); 
         }
 
+        // ОБРАБОТКА СКРОЛЛА (ИСПРАВЛЕННАЯ)
         const chatBoxEl = document.getElementById('chat-box');
         const scrollBtnEl = document.getElementById('scroll-btn');
 
         chatBoxEl.addEventListener('scroll', () => {
-             checkScroll();
              const dist = chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight;
-             if (dist > 50) isUserScrolling = true;
-             else isUserScrolling = false;
+             
+             // Если мы отмотали вверх больше чем на 50px - считаем, что юзер читает
+             if (dist > 50) {
+                 isUserScrolling = true;
+                 scrollBtnEl.style.display='flex';
+             } else {
+                 isUserScrolling = false;
+                 scrollBtnEl.style.display='none';
+             }
         });
 
-        function checkScroll(){ 
-            const dist = chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight;
-            if (dist > 200) scrollBtnEl.style.display='flex'; 
-            else scrollBtnEl.style.display='none'; 
-        }
-
         function forceScrollBottom(){ 
-            const c=document.getElementById('chat-box'); 
-            c.scrollTop=c.scrollHeight; 
-            isUserScrolling=false; 
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight; 
+            isUserScrolling = false; 
             scrollBtnEl.style.display='none';
         }
         
-        function appendMessageToUI(role, text, animate) {
+        function appendMessageToUI(role, text, renderHtmlNow) {
             const c = document.createElement('div'); c.className = `message-container ${role === 'user' ? 'user-container' : 'ai-container'}`;
             const m = document.createElement('div'); m.className = `message ${role === 'user' ? 'user' : 'ai'}`;
             c.appendChild(m); document.getElementById('chat-box').appendChild(c);
@@ -322,9 +337,13 @@
                 c.appendChild(b); 
             }
             
-            if (!animate && typeof marked !== 'undefined') {
-                m.innerHTML = role==='ai'?marked.parse(text):text; 
-            } else { m.innerText=text; }
+            // Если renderHtmlNow = true, то сразу прогоняем через Marked (для истории)
+            // Если false (при печати), то просто вставляем текст
+            if (renderHtmlNow && typeof marked !== 'undefined') {
+                m.innerHTML = role==='ai' ? marked.parse(text) : text; 
+            } else { 
+                m.innerText = text; 
+            }
             return m;
         }
 
