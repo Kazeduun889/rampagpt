@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1f2c34">
-    <title>RampaGPT v1.5</title>
+    <title>RampaGPT v1.6</title>
     
-    <!-- Библиотеки загружаем СРАЗУ -->
+    <!-- Подключаем библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
@@ -52,7 +52,7 @@
         .user { background-color: #005c4b; color: #fff; border-bottom-right-radius: 2px; }
         .ai { background-color: #202c33; color: #fff; border-bottom-left-radius: 2px; min-width: 150px;}
         
-        /* Стили для кода */
+        /* CODE STYLES */
         .ai pre { background: #1e1e1e !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; }
         .ai code { font-family: monospace; font-size: 13px; }
         .ai p code, .ai li code { background: #333; padding: 2px 6px; border-radius: 4px; color: #ff7b72; }
@@ -64,7 +64,7 @@
         }
         .copy-btn:active { background: #00a884; color: #fff; border-color: #00a884; }
 
-        /* FIXED FOOTER */
+        /* FOOTER */
         .footer-container {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background-color: #0b141a; z-index: 50;
@@ -99,7 +99,7 @@
 <body>
 
     <header>
-        <h1>RampaGPT v1.5</h1>
+        <h1>RampaGPT v1.6</h1>
         <div>
             <button class="header-btn" onclick="toggleSettings()">⚙️</button>
             <button class="header-btn" onclick="resetKey()">🔑</button>
@@ -108,9 +108,8 @@
     </header>
 
     <div id="key-modal">
-        <h2 style="color: #00a884;">Вход в RampaGPT</h2>
-        <p style="color: #ccc; text-align: center; font-size: 14px;">Вставь свой ключ OpenAI (sk-...)</p>
-        <p style="color: #777; font-size: 12px; margin-bottom: 15px;">Работает только с VPN</p>
+        <h2 style="color: #00a884;">Вход</h2>
+        <p style="color: #ccc;">Вставь ключ OpenAI (sk-...)</p>
         <input type="text" id="key-input" placeholder="sk-proj-...">
         <button id="save-key-btn" onclick="saveApiKey()">Войти</button>
     </div>
@@ -120,7 +119,7 @@
         <input type="text" id="system-prompt" value="Ты умный программист. Пиши код в блоках ```язык ... ```." placeholder="Роль...">
         <button class="save-btn" onclick="toggleSettings()">Сохранить</button>
         <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
-        <button class="save-btn" style="background: #333; color: #fff;" onclick="location.reload()">🔄 Обновить вид</button>
+        <button class="save-btn" style="background: #333; color: #fff;" onclick="forceRerender()">🔄 Починить вид чата</button>
     </div>
 
     <div id="chat-box" onscroll="checkScroll()"></div>
@@ -132,7 +131,7 @@
         <div id="chips-bar">
             <div class="chip" onclick="setInput('Исправь код: ')">🐞 Исправь</div>
             <div class="chip" onclick="setInput('Объясни код: ')">👨‍💻 Объясни</div>
-            <div class="chip" onclick="setInput('Игра на JS')">🎮 Игра</div>
+            <div class="chip" onclick="setInput('Напиши игру на JS')">🎮 Игра</div>
             <div class="chip" onclick="setInput('Переведи: ')">🇬🇧 Перевод</div>
         </div>
         <div class="input-area">
@@ -143,52 +142,73 @@
     </div>
 
     <script>
-        const STORAGE_KEY = 'rampa_history_v1_5';
+        const STORAGE_KEY = 'rampa_history_v1_6'; // Новый ключ для чистого листа
         const API_STORAGE_KEY = 'rampa_api_key_secret';
         
         let apiKey = localStorage.getItem(API_STORAGE_KEY);
-        
+        let conversationHistory = [];
+        let isTouching = false; 
+
+        // === ИСПРАВЛЕНИЕ: Ждем загрузки библиотек перед стартом ===
+        window.onload = function() {
+            trySetupLibraries();
+        };
+
+        function trySetupLibraries() {
+            if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
+                // Настройка только когда библиотеки загружены
+                marked.setOptions({
+                    breaks: true, 
+                    gfm: true,
+                    highlight: function(code, lang) {
+                        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                        return hljs.highlight(code, { language }).value;
+                    }
+                });
+                
+                // Запуск логики
+                if (!apiKey) {
+                    document.getElementById('key-modal').style.display = 'flex';
+                } else {
+                    loadHistory();
+                }
+            } else {
+                // Если не загрузились - пробуем снова через 0.1 сек
+                console.log("Библиотеки еще грузятся...");
+                setTimeout(trySetupLibraries, 100);
+            }
+        }
+
+        function forceRerender() {
+            // Принудительная перерисовка (для кнопки в настройках)
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+            if (conversationHistory.length > 0) {
+                conversationHistory.forEach(msg => {
+                    if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, false);
+                });
+            }
+            toggleSettings();
+            showToast("Чат перерисован");
+        }
+
+        // --- Стандартные функции ---
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
         const scrollBtn = document.getElementById('scroll-btn');
         const systemPrompt = document.getElementById('system-prompt');
         const statusBar = document.getElementById('status-bar');
-        const keyModal = document.getElementById('key-modal');
         const keyInput = document.getElementById('key-input');
-        
-        let conversationHistory = [];
-        let isUserScrolling = false;
-        let isTouching = false; 
-
-        // Инициализация библиотек (Важно для исправления бага с загрузкой)
-        window.onload = function() {
-            marked.setOptions({
-                breaks: true, 
-                gfm: true,
-                highlight: function(code, lang) {
-                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                    return hljs.highlight(code, { language }).value;
-                }
-            });
-
-            if (!apiKey) {
-                keyModal.style.display = 'flex';
-            } else {
-                loadHistory(); // Загружаем историю только когда всё готово
-            }
-        };
 
         function saveApiKey() {
             const key = keyInput.value.trim();
             if (key.length > 10) {
                 localStorage.setItem(API_STORAGE_KEY, key);
                 apiKey = key;
-                keyModal.style.display = 'none';
+                document.getElementById('key-modal').style.display = 'none';
                 loadHistory();
-            } else {
-                alert('Слишком короткий ключ!');
-            }
+            } else { alert('Некорректный ключ'); }
         }
 
         function resetKey() {
@@ -208,16 +228,11 @@
         function copyText(text, btn) {
             const textArea = document.createElement("textarea");
             textArea.value = text;
-            textArea.style.position = "fixed"; 
-            textArea.style.left = "-9999px";
+            textArea.style.position = "fixed"; textArea.style.left = "-9999px";
             document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                btn.innerText = "Скопировано!";
-                setTimeout(() => btn.innerText = "Копировать", 2000);
-            } catch (err) { showToast("Ошибка копирования"); }
+            textArea.focus(); textArea.select();
+            try { document.execCommand('copy'); btn.innerText = "Скопировано!"; setTimeout(() => btn.innerText = "Копировать", 2000); } 
+            catch (err) { showToast("Ошибка"); }
             document.body.removeChild(textArea);
         }
 
@@ -226,17 +241,17 @@
             const savedPrompt = localStorage.getItem('rampa_prompt');
             if (savedPrompt) systemPrompt.value = savedPrompt;
             
+            chatBox.innerHTML = ''; // Чистим перед загрузкой
+            
             if (saved) {
                 conversationHistory = JSON.parse(saved);
-                // Очищаем бокс перед рендером чтобы не было дублей
-                chatBox.innerHTML = '';
                 conversationHistory.forEach(msg => {
                     if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, false);
                 });
                 setTimeout(scrollToBottom, 100);
             } else {
                 conversationHistory = [{ role: "system", content: systemPrompt.value }];
-                appendMessageToUI('assistant', 'Привет! Я RampaGPT v1.5. Проблемы с кодом исправлены.', false);
+                appendMessageToUI('assistant', 'Привет! Я RampaGPT v1.6. Теперь код не должен ломаться.', false);
             }
         }
 
@@ -246,7 +261,7 @@
         }
 
         function clearHistory() {
-            if(confirm('Удалить переписку (исправит глюки)?')) {
+            if(confirm('Очистить чат?')) {
                 localStorage.removeItem(STORAGE_KEY);
                 location.reload();
             }
@@ -292,11 +307,11 @@
             }
 
             if (!animate) {
-                // Если marked загрузился - используем его, иначе просто текст
-                if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                // Если парсер готов - парсим, иначе ждем
+                if (typeof marked !== 'undefined') {
                     msgDiv.innerHTML = role === 'ai' ? marked.parse(text) : text;
                 } else {
-                    msgDiv.innerText = text; // Защита от сбоя
+                    msgDiv.innerText = text;
                 }
                 return null;
             } else { return msgDiv; }
@@ -332,7 +347,7 @@
                     appendMessageToUI('assistant', `Ошибка: ${data.error.message}`, false);
                     if (data.error.code === 'invalid_api_key') {
                         localStorage.removeItem(API_STORAGE_KEY);
-                        alert('Неверный ключ. Перезагрузись.');
+                        alert('Неверный ключ!');
                     }
                 } else {
                     const aiContent = data.choices[0].message.content;
@@ -366,7 +381,7 @@
             }
         }
 
-       > const micBtn = document.getElementById('mic-btn');
+        const micBtn = document.getElementById('mic-btn');
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             let recognition = new SpeechRecognition();
@@ -382,5 +397,4 @@
         } else { micBtn.style.display = 'none'; }
     </script>
 </body>
-</html
-    
+</html>
