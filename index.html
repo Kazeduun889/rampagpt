@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#1f2c34">
-    <title>RampaGPT v2.1</title>
+    <title>RampaGPT v2.2</title>
     
-    <!-- ЗАГРУЖАЕМ БИБЛИОТЕКИ СРАЗУ (Синхронно) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
@@ -21,26 +20,27 @@
             height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* ШАПКА С ИКОНКОЙ */
+        /* ЗАГРУЗЧИК */
+        #loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0b141a; z-index: 9999;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #2a3942; border-top: 4px solid #00a884;
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ШАПКА */
         header {
             background-color: #1f2c34; padding: 10px 15px;
             display: flex; justify-content: space-between; align-items: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 100;
             height: 60px; flex-shrink: 0;
         }
-        
-        .logo-area { display: flex; align-items: center; gap: 8px; }
-        .logo-icon { 
-    font-size: 24px; 
-    background: linear-gradient(45deg, #00a884, #00ffaa);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 0 5px rgba(0,255,170,0.3));
-}
-
-        h1 { margin: 0; font-size: 19px; color: #fff; font-weight: 700; letter-spacing: 0.5px; }
-        
+        /* ЗЕЛЕНОЕ НАЗВАНИЕ */
+        h1 { margin: 0; font-size: 20px; color: #00a884; font-weight: 700; letter-spacing: 0.5px; }
         .header-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #aebac1; margin-left: 15px;}
 
         /* ЧАТ */
@@ -52,7 +52,9 @@
             background-image: radial-gradient(#1f2c34 1px, transparent 1px);
             background-size: 20px 20px;
             -webkit-overflow-scrolling: touch; 
+            opacity: 0; transition: opacity 0.3s;
         }
+        #chat-box.loaded { opacity: 1; }
 
         .message-container { display: flex; flex-direction: column; max-width: 90%; position: relative; }
         .user-container { align-self: flex-end; }
@@ -65,17 +67,15 @@
         .user { background-color: #005c4b; color: #fff; border-bottom-right-radius: 2px; }
         .ai { background-color: #202c33; color: #fff; border-bottom-left-radius: 2px; min-width: 150px;}
         
-        /* ЗАЩИТА ОТ КНОПОК ВНУТРИ ЧАТА */
-        .ai button, .ai input { display: none !important; } /* Скрываем любой HTML мусор */
-        
+        /* КОД */
         .ai pre { background: #121212 !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid #333; }
         .ai code { font-family: monospace; font-size: 13px; }
-        
+        .ai p code { background: #333; padding: 2px 5px; border-radius: 4px; color: #ff7b72; }
+
         .copy-btn {
             background: #2a3942; border: 1px solid #444; color: #ccc;
             font-size: 11px; padding: 6px 12px; border-radius: 6px;
             margin-top: 6px; align-self: flex-start; cursor: pointer; font-weight: 500;
-            display: block !important; /* Кнопку копирования показываем */
         }
         .copy-btn:active { background: #00a884; color: #fff; border-color: #00a884; }
 
@@ -89,7 +89,7 @@
             font-size: 24px; font-weight: bold;
         }
 
-        /* НИЖНЯЯ ПАНЕЛЬ */
+        /* ФУТЕР */
         .footer-container {
             position: absolute; bottom: 0; left: 0; width: 100%;
             background-color: #0b141a; z-index: 150;
@@ -118,11 +118,13 @@
 </head>
 <body>
 
+    <div id="loader">
+        <div class="spinner"></div>
+        <div style="color: #00a884;">Загрузка системы...</div>
+    </div>
+
     <header>
-        <div class="logo-area">
-            <span class="logo-icon">🤖</span>
-            <h1>RampaGPT</h1>
-        </div>
+        <h1>RampaGPT</h1>
         <div>
             <button class="header-btn" onclick="toggleSettings()">⚙️</button>
             <button class="header-btn" onclick="clearHistory()">🗑️</button>
@@ -135,9 +137,8 @@
         <button class="save-btn" onclick="toggleSettings()">Сохранить</button>
         
         <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
-        <p style="color: #ccc; font-size: 12px; text-align: center;">Поддержи проект:</p>
-        <!-- ВСТАВЬ СВОЮ ССЫЛКУ НА ДОНАТ НИЖЕ -->
-        <button class="save-btn" style="background: #ff8800; color: white;" onclick="window.open('https://www.donationalerts.com/r/scybon')">☕ Донат автору</button>
+        <p style="color: #ccc; font-size: 12px; text-align: center;">Нравится проект?</p>
+        <button class="save-btn" style="background: #ff8800; color: white;" onclick="window.open('https://www.donationalerts.com/r/scybon')">☕ Поддержать автора</button>
     </div>
 
     <div id="chat-box"></div>
@@ -160,25 +161,29 @@
     </div>
 
     <script>
-        // ТВОЙ СЕРВЕР CLOUDFLARE
         const WORKER_URL = "https://delicate-limit-15a4.dimpstik12.workers.dev";
-        const STORAGE_KEY = 'rampa_v2_1_stable'; // Новый ключ для чистоты
+        const STORAGE_KEY = 'rampa_v2_2_final'; 
         
         let conversationHistory = [];
-        let isTouching = false; 
+        let autoScrollEnabled = true; // Главный флаг автопрокрутки
 
-        // Инициализация библиотек
-        window.onload = function() {
-            marked.setOptions({
-                breaks: true, 
-                gfm: true,
-                highlight: function(code, lang) {
-                    const language = hljs.getLanguage(lang) ? lang : 'plaintext';
-                    return hljs.highlight(code, { language }).value;
-                }
-            });
-            loadHistory();
-        };
+        // Инициализация
+        let checkInterval = setInterval(() => {
+            if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
+                clearInterval(checkInterval);
+                marked.setOptions({
+                    breaks: true, 
+                    gfm: true,
+                    highlight: function(code, lang) {
+                        const language = hljs.getLanguage(lang) ? lang : 'plaintext';
+                        return hljs.highlight(code, { language }).value;
+                    }
+                });
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('chat-box').classList.add('loaded');
+                loadHistory();
+            }
+        }, 100);
 
         function loadHistory() {
             const saved = localStorage.getItem(STORAGE_KEY);
@@ -197,7 +202,7 @@
                 setTimeout(forceScrollBottom, 100);
             } else {
                 conversationHistory = [{ role: "system", content: document.getElementById('system-prompt').value }];
-                appendMessageToUI('assistant', 'Привет! Я RampaGPT. Как я могу помочь?', true);
+                appendMessageToUI('assistant', 'Привет! Я RampaGPT.', true);
             }
         }
 
@@ -207,6 +212,9 @@
 
             document.getElementById('user-input').value = '';
             appendMessageToUI('user', text, true);
+            
+            // ПРИ ОТПРАВКЕ ВСЕГДА ВКЛЮЧАЕМ АВТОСКРОЛЛ
+            autoScrollEnabled = true;
             forceScrollBottom();
 
             conversationHistory.push({ role: "user", content: text });
@@ -235,7 +243,6 @@
                     saveToStorage();
 
                     const msgDiv = appendMessageToUI('assistant', '', false);
-                    
                     let i = 0; let currentText = "";
                     
                     function typeWriter() {
@@ -243,23 +250,21 @@
                             currentText += aiContent.charAt(i);
                             msgDiv.innerText = currentText; 
                             
-                            // ГЛАВНОЕ ИСПРАВЛЕНИЕ СКРОЛЛА
-                            // Если пользователь держит палец на экране (isTouching), мы НЕ скроллим
-                            if (!isTouching) {
+                            // УМНЫЙ СКРОЛЛ: Скроллим только если флаг включен
+                            if (autoScrollEnabled) {
                                 const box = document.getElementById('chat-box');
                                 box.scrollTop = box.scrollHeight;
                             }
                             
                             i++;
-                            setTimeout(typeWriter, 5); // Чуть медленнее для плавности
+                            setTimeout(typeWriter, 5); 
                         } else {
                             msgDiv.innerHTML = marked.parse(aiContent);
                             document.getElementById('send-btn').disabled = false;
-                            
                             const btn = msgDiv.parentElement.querySelector('.copy-btn');
                             btn.onclick = function() { copyText(aiContent, this); };
                             
-                            if (!isTouching) forceScrollBottom();
+                            if (autoScrollEnabled) forceScrollBottom();
                         }
                     }
                     typeWriter();
@@ -271,6 +276,39 @@
             }
         }
 
+        // --- ЛОГИКА СКРОЛЛА v2.2 ---
+        const chatBoxEl = document.getElementById('chat-box');
+        const scrollBtnEl = document.getElementById('scroll-btn');
+
+        // Если пользователь касается экрана - ОТКЛЮЧАЕМ автоскролл
+        chatBoxEl.addEventListener('touchstart', () => { 
+            autoScrollEnabled = false; 
+        });
+        
+        // Если пользователь крутит колесиком/тачпадом - ОТКЛЮЧАЕМ
+        chatBoxEl.addEventListener('wheel', () => { 
+            autoScrollEnabled = false; 
+        });
+
+        chatBoxEl.addEventListener('scroll', () => {
+             const dist = chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight;
+             
+             // Показываем кнопку "Вниз", если мы не внизу
+             if (dist > 100) {
+                 scrollBtnEl.style.display='flex';
+             } else {
+                 scrollBtnEl.style.display='none';
+                 // Если мы сами пришли вниз - можно включить автоскролл обратно (опционально)
+             }
+        });
+
+        function forceScrollBottom(){ 
+            chatBoxEl.scrollTop = chatBoxEl.scrollHeight; 
+            autoScrollEnabled = true; // Снова включаем "прилипание"
+            scrollBtnEl.style.display='none';
+        }
+        
+        // --- Остальные функции ---
         function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory)); localStorage.setItem('rampa_prompt', document.getElementById('system-prompt').value); }
         function clearHistory() { if(confirm('Очистить чат?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); } }
         function toggleSettings() { const p = document.getElementById('settings-panel'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; saveToStorage(); }
@@ -285,31 +323,6 @@
             document.body.removeChild(a); 
         }
 
-        // --- ЛОГИКА СКРОЛЛА И КАСАНИЙ ---
-        const chatBoxEl = document.getElementById('chat-box');
-        const scrollBtnEl = document.getElementById('scroll-btn');
-
-        // Ловим касания пальцем
-        chatBoxEl.addEventListener('touchstart', () => { isTouching = true; });
-        chatBoxEl.addEventListener('touchend', () => { 
-            isTouching = false; 
-            // Небольшая задержка, чтобы скролл не дернулся сразу
-            setTimeout(() => checkScroll(), 100); 
-        });
-
-        chatBoxEl.addEventListener('scroll', checkScroll);
-
-        function checkScroll(){ 
-            const dist = chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight;
-            if (dist > 100) scrollBtnEl.style.display='flex'; 
-            else scrollBtnEl.style.display='none'; 
-        }
-
-        function forceScrollBottom(){ 
-            chatBoxEl.scrollTop = chatBoxEl.scrollHeight; 
-            scrollBtnEl.style.display='none';
-        }
-        
         function appendMessageToUI(role, text, renderHtmlNow) {
             const c = document.createElement('div'); c.className = `message-container ${role === 'user' ? 'user-container' : 'ai-container'}`;
             const m = document.createElement('div'); m.className = `message ${role === 'user' ? 'user' : 'ai'}`;
