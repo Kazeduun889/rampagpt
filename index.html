@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1f2c34">
-    <title>RampaGPT</title>
+    <title>RampaGPT v1.9</title>
     
-    <!-- Подключаем стили для красивого кода -->
+    <!-- Стили -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
 
     <style>
@@ -20,10 +19,10 @@
             height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* ЭКРАН ЗАГРУЗКИ */
+        /* ЗАГРУЗЧИК */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0b141a; z-index: 5000;
+            background: #0b141a; z-index: 9999;
             display: flex; justify-content: center; align-items: center; flex-direction: column;
         }
         .spinner {
@@ -40,19 +39,22 @@
             height: 60px; flex-shrink: 0;
         }
         h1 { margin: 0; font-size: 19px; color: #00a884; font-weight: 700; }
-        .header-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #aebac1; margin-left: 15px;}
+        .header-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #aebac1; margin-left: 15px;}
 
         /* ЧАТ */
         #chat-box { 
-            flex-grow: 1; overflow-y: auto; padding: 15px; padding-bottom: 180px; 
-            display: flex; flex-direction: column; gap: 10px;
+            flex-grow: 1; overflow-y: auto; padding: 15px; 
+            padding-bottom: 160px; 
+            display: flex; flex-direction: column; gap: 12px;
             background-color: #0b141a;
             background-image: radial-gradient(#1f2c34 1px, transparent 1px);
             background-size: 20px 20px;
             -webkit-overflow-scrolling: touch; 
+            opacity: 0; transition: opacity 0.3s;
         }
+        #chat-box.loaded { opacity: 1; }
 
-        .message-container { display: flex; flex-direction: column; max-width: 92%; position: relative; }
+        .message-container { display: flex; flex-direction: column; max-width: 90%; position: relative; }
         .user-container { align-self: flex-end; }
         .ai-container { align-self: flex-start; }
 
@@ -63,7 +65,7 @@
         .user { background-color: #005c4b; color: #fff; border-bottom-right-radius: 2px; }
         .ai { background-color: #202c33; color: #fff; border-bottom-left-radius: 2px; min-width: 150px;}
         
-        .ai pre { background: #1e1e1e !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; }
+        .ai pre { background: #181818 !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 8px 0; border: 1px solid #333; }
         .ai code { font-family: monospace; font-size: 13px; }
         
         .copy-btn {
@@ -73,10 +75,20 @@
         }
         .copy-btn:active { background: #00a884; color: #fff; border-color: #00a884; }
 
+        /* КНОПКА ВНИЗ */
+        #scroll-btn {
+            position: fixed; bottom: 140px; right: 20px;
+            background: #202c33; color: #00a884; border: 1px solid #333;
+            width: 45px; height: 45px; border-radius: 50%;
+            display: none; justify-content: center; align-items: center;
+            cursor: pointer; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            font-size: 24px; font-weight: bold;
+        }
+
         /* НИЖНЯЯ ПАНЕЛЬ */
         .footer-container {
             position: absolute; bottom: 0; left: 0; width: 100%;
-            background-color: #0b141a; z-index: 50;
+            background-color: #0b141a; z-index: 150;
             display: flex; flex-direction: column;
             border-top: 1px solid #1f2c34;
         }
@@ -92,20 +104,20 @@
         .mic-active { background-color: #ff3b30 !important; animation: pulse 1s infinite; }
         
         /* НАСТРОЙКИ */
-        #settings-panel { display: none; background: #2a3942; padding: 15px; position: absolute; top: 60px; left: 0; width: 100%; z-index: 90; border-bottom: 1px solid #333; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
+        #settings-panel { display: none; background: #2a3942; padding: 15px; position: absolute; top: 60px; left: 0; width: 100%; z-index: 160; border-bottom: 1px solid #333; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
         input#system-prompt { width: 100%; padding: 10px; border-radius: 8px; background: #111b21; color: #fff; margin-bottom: 10px; border:none;}
         .save-btn { background: #00a884; color: #111b21; border: none; padding: 10px; border-radius: 5px; width: 100%; font-weight: bold;}
         
-        #scroll-btn { position: fixed; bottom: 160px; right: 20px; background: #202c33; color: #00a884; border: 1px solid #333; width: 40px; height: 40px; border-radius: 50%; display: none; justify-content: center; align-items: center; cursor: pointer; z-index: 60; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 10px; position: fixed; z-index: 200; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: opacity 0.3s; }
+        #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 10px; position: fixed; z-index: 300; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: opacity 0.3s; }
         #toast.show { visibility: visible; opacity: 1; }
     </style>
 </head>
 <body>
 
+    <!-- ЗАГРУЗЧИК -->
     <div id="loader">
         <div class="spinner"></div>
-        <div style="color: #00a884;">Загрузка RampaGPT...</div>
+        <div style="color: #00a884;">Загрузка системы...</div>
     </div>
 
     <header>
@@ -117,22 +129,23 @@
     </header>
 
     <div id="settings-panel">
-        <label style="color:#aaa; font-size:12px;">Роль (инструкция):</label>
+        <label style="color:#aaa; font-size:12px;">Роль:</label>
         <input type="text" id="system-prompt" value="Ты умный ассистент." placeholder="Роль...">
         <button class="save-btn" onclick="toggleSettings()">Сохранить</button>
         
+        <!-- КНОПКА ПОДДЕРЖАТЬ (Вставь свою ссылку!) -->
         <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
         <p style="color: #ccc; font-size: 12px; text-align: center;">Нравится проект?</p>
-        <!-- СЮДА МОЖЕШЬ ВСТАВИТЬ ССЫЛКУ НА ДОНАТ -->
-        <button class="save-btn" style="background: #ff8800; color: white;" onclick="window.open('https://boosty.to/', '_blank')">☕ Поддержать автора</button>
+        <button class="save-btn" style="background: #ff8800; color: white;" onclick="window.open('https://www.donationalerts.com/r/scybon')">☕ Поддержать автора</button>
     </div>
 
     <div id="chat-box" onscroll="checkScroll()"></div>
     <div id="toast"></div>
-    <button id="scroll-btn" onclick="scrollToBottom()">⬇</button>
+    
+    <div id="scroll-btn" onclick="forceScrollBottom()">⬇</div>
 
     <div class="footer-container">
-        <div id="status-bar"><div class="pulse-dot"></div><span>Думает...</span></div>
+        <div id="status-bar"><div class="pulse-dot"></div><span>Печатает...</span></div>
         <div id="chips-bar">
             <div class="chip" onclick="setInput('Исправь код: ')">🐞 Исправь</div>
             <div class="chip" onclick="setInput('Объясни: ')">👨‍💻 Объясни</div>
@@ -146,30 +159,30 @@
         </div>
     </div>
 
-    <!-- Библиотеки -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 
     <script>
-        // ТВОЙ СЕРВЕР (КЛЮЧ СПРЯТАН ТАМ)
         const WORKER_URL = "https://delicate-limit-15a4.dimpstik12.workers.dev";
-        const STORAGE_KEY = 'rampa_public_v1';
+        const STORAGE_KEY = 'rampa_public_v1_9';
         
         let conversationHistory = [];
-        let isUserScrolling = false;
+        let isUserScrolling = false; 
 
-        // Ожидание загрузки библиотек
+        // Ожидание библиотек
         let checkInterval = setInterval(() => {
             if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
                 clearInterval(checkInterval);
                 marked.setOptions({
-                    breaks: true, gfm: true,
+                    breaks: true, 
+                    gfm: true,
                     highlight: function(code, lang) {
                         const language = hljs.getLanguage(lang) ? lang : 'plaintext';
                         return hljs.highlight(code, { language }).value;
                     }
                 });
                 document.getElementById('loader').style.display = 'none';
+                document.getElementById('chat-box').classList.add('loaded');
                 loadHistory();
             }
         }, 100);
@@ -182,14 +195,16 @@
             document.getElementById('chat-box').innerHTML = '';
             
             if (saved) {
-                conversationHistory = JSON.parse(saved);
-                conversationHistory.forEach(msg => {
-                    if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, false);
-                });
-                setTimeout(scrollToBottom, 100);
+                try {
+                    conversationHistory = JSON.parse(saved);
+                    conversationHistory.forEach(msg => {
+                        if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, false);
+                    });
+                } catch(e) {}
+                setTimeout(forceScrollBottom, 100);
             } else {
                 conversationHistory = [{ role: "system", content: document.getElementById('system-prompt').value }];
-                appendMessageToUI('assistant', 'Привет! Я RampaGPT (Online). Ключ не требуется.', false);
+                appendMessageToUI('assistant', 'Привет! Я RampaGPT. Готов помочь!', false);
             }
         }
 
@@ -199,19 +214,18 @@
 
             document.getElementById('user-input').value = '';
             appendMessageToUI('user', text, false);
-            scrollToBottom();
+            forceScrollBottom();
 
             conversationHistory.push({ role: "user", content: text });
             saveToStorage();
             
             document.getElementById('send-btn').disabled = true;
             document.getElementById('status-bar').style.display = "flex"; 
-            
-            // Обновляем системную роль
+            isUserScrolling = false;
+
             conversationHistory[0] = { role: "system", content: document.getElementById('system-prompt').value };
 
             try {
-                // ОТПРАВКА НА ТВОЙ СЕРВЕР
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -230,19 +244,25 @@
 
                     const msgDiv = appendMessageToUI('assistant', '', true);
                     let i = 0; let currentText = "";
+                    
                     function typeWriter() {
                         if (i < aiContent.length) {
                             currentText += aiContent.charAt(i);
                             msgDiv.innerText = currentText; 
-                            if (!isUserScrolling) document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+                            if (!isUserScrolling) {
+                                const box = document.getElementById('chat-box');
+                                box.scrollTop = box.scrollHeight;
+                            }
                             i++;
                             setTimeout(typeWriter, 1);
                         } else {
                             msgDiv.innerHTML = marked.parse(aiContent);
                             document.getElementById('send-btn').disabled = false;
+                            
                             const btn = msgDiv.parentElement.querySelector('.copy-btn');
                             btn.onclick = function() { copyText(aiContent, this); };
-                            if (!isUserScrolling) scrollToBottom();
+                            
+                            if (!isUserScrolling) forceScrollBottom();
                         }
                     }
                     typeWriter();
@@ -254,23 +274,57 @@
             }
         }
 
-        // --- Вспомогательные функции ---
         function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory)); localStorage.setItem('rampa_prompt', document.getElementById('system-prompt').value); }
         function clearHistory() { if(confirm('Очистить чат?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); } }
         function toggleSettings() { const p = document.getElementById('settings-panel'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; saveToStorage(); }
         function setInput(text) { const i = document.getElementById('user-input'); i.value = text; i.focus(); }
         function showToast(m) { const t = document.getElementById("toast"); t.innerText = m; t.className = "show"; setTimeout(()=>t.className="", 3000); }
-        function copyText(t, b) { const a = document.createElement("textarea"); a.value = t; a.style.position="fixed"; a.style.left="-9999px"; document.body.appendChild(a); a.focus(); a.select(); try{document.execCommand('copy'); b.innerText="Скопировано!"; setTimeout(()=>b.innerText="Копировать",2000);}catch(e){showToast("Error");} document.body.removeChild(a); }
-        document.getElementById('chat-box').addEventListener('touchstart', ()=>isUserScrolling=true);
-        function checkScroll(){ if((document.getElementById('chat-box').scrollHeight - document.getElementById('chat-box').scrollTop - document.getElementById('chat-box').clientHeight)>150) document.getElementById('scroll-btn').style.display='flex'; else {document.getElementById('scroll-btn').style.display='none'; isUserScrolling=false;} }
-        function scrollToBottom(){ const c=document.getElementById('chat-box'); c.scrollTop=c.scrollHeight; isUserScrolling=false; }
+        
+        function copyText(t, b) { 
+            const a = document.createElement("textarea"); a.value = t; a.style.position="fixed"; a.style.left="-9999px"; 
+            document.body.appendChild(a); a.focus(); a.select(); 
+            try{ document.execCommand('copy'); b.innerText="Скопировано!"; setTimeout(()=>b.innerText="Копировать",2000);}
+            catch(e){showToast("Error");} 
+            document.body.removeChild(a); 
+        }
+
+        const chatBoxEl = document.getElementById('chat-box');
+        const scrollBtnEl = document.getElementById('scroll-btn');
+
+        chatBoxEl.addEventListener('scroll', () => {
+             checkScroll();
+             const dist = chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight;
+             if (dist > 50) isUserScrolling = true;
+             else isUserScrolling = false;
+        });
+
+        function checkScroll(){ 
+            const dist = chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight;
+            if (dist > 200) scrollBtnEl.style.display='flex'; 
+            else scrollBtnEl.style.display='none'; 
+        }
+
+        function forceScrollBottom(){ 
+            const c=document.getElementById('chat-box'); 
+            c.scrollTop=c.scrollHeight; 
+            isUserScrolling=false; 
+            scrollBtnEl.style.display='none';
+        }
         
         function appendMessageToUI(role, text, animate) {
             const c = document.createElement('div'); c.className = `message-container ${role === 'user' ? 'user-container' : 'ai-container'}`;
             const m = document.createElement('div'); m.className = `message ${role === 'user' ? 'user' : 'ai'}`;
             c.appendChild(m); document.getElementById('chat-box').appendChild(c);
-            if (role === 'assistant') { const b = document.createElement('button'); b.innerText = "Копировать"; b.className = "copy-btn"; b.onclick = function() { copyText(text, this); }; c.appendChild(b); }
-            if(typeof marked!=='undefined') m.innerHTML = role==='ai'?marked.parse(text):text; else m.innerText=text;
+            
+            if (role === 'assistant') { 
+                const b = document.createElement('button'); b.innerText = "Копировать"; b.className = "copy-btn"; 
+                b.onclick = function() { copyText(text, this); }; 
+                c.appendChild(b); 
+            }
+            
+            if (!animate && typeof marked !== 'undefined') {
+                m.innerHTML = role==='ai'?marked.parse(text):text; 
+            } else { m.innerText=text; }
             return m;
         }
 
