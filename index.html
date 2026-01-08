@@ -6,111 +6,97 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#1f2c34">
-    <title>RampaGPT v2.4</title>
+    <title>RampaGPT v2.5</title>
     
-    <!-- Стили для красивого кода (Atom One Dark) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
 
     <style>
-        /* === БАЗОВЫЕ СТИЛИ === */
         * { box-sizing: border-box; }
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; padding: 0; 
-            background-color: #0b141a; color: #e9edef;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; padding: 0; background-color: #0b141a; color: #e9edef; 
             height: 100dvh; display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* === ЭКРАН ЗАГРУЗКИ (Защита от багов) === */
-        #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0b141a; z-index: 9999;
-            display: flex; justify-content: center; align-items: center; flex-direction: column;
-        }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #2a3942; border-top: 4px solid #00a884;
-            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;
-        }
+        /* ЗАГРУЗЧИК */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0b141a; z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #2a3942; border-top: 4px solid #00a884; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* === ШАПКА === */
+        /* ШАПКА */
         header {
             background-color: #1f2c34; padding: 10px 15px;
             display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 100;
-            height: 60px; flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3); z-index: 100; height: 60px; flex-shrink: 0;
         }
-        /* Зеленое название RampaGPT */
         h1 { margin: 0; font-size: 20px; color: #00a884; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; }
-        .header-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #aebac1; margin-left: 15px;}
+        .header-actions { display: flex; gap: 15px; }
+        .header-btn { background: none; border: none; font-size: 22px; cursor: pointer; color: #aebac1; padding: 0; }
         
-        /* Значок PRO версии */
+        /* ЗНАЧОК PRO */
         .pro-badge { 
-            background: linear-gradient(45deg, #FFD700, #FFA500); color: #000; 
-            padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; 
-            margin-left: 8px; display: none; vertical-align: middle; 
+            background: #00a884; color: #fff; padding: 2px 6px; 
+            border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 8px; 
+            display: none; vertical-align: middle; 
         }
         .pro-active .pro-badge { display: inline-block; }
 
-        /* === ЧАТ (ОСНОВНОЕ ОКНО) === */
-        #chat-box { 
-            flex-grow: 1; overflow-y: auto; padding: 15px; 
-            padding-bottom: 160px; /* Место под нижнюю панель */
-            display: flex; flex-direction: column; gap: 12px;
-            background-color: #0b141a;
-            background-image: radial-gradient(#1f2c34 1px, transparent 1px);
-            background-size: 20px 20px;
-            -webkit-overflow-scrolling: touch; 
-            opacity: 0; transition: opacity 0.3s;
+        /* ОКНО ПОДПИСКИ (MODAL) */
+        #sub-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000;
+            display: none; justify-content: center; align-items: center; padding: 20px;
         }
-        #chat-box.loaded { opacity: 1; }
+        .sub-card {
+            background: #1f2c34; width: 100%; max-width: 350px;
+            border-radius: 15px; padding: 20px; border: 1px solid #333;
+            text-align: center; position: relative;
+        }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #777; }
+        
+        .plan-box {
+            border: 2px solid #00a884; border-radius: 10px; background: #111b21;
+            padding: 15px; margin: 15px 0;
+        }
+        .plan-title { font-size: 18px; font-weight: bold; color: #fff; margin-bottom: 5px; }
+        .plan-price { font-size: 22px; color: #00a884; font-weight: 900; margin: 10px 0; }
+        .plan-features { font-size: 13px; color: #ccc; line-height: 1.6; margin-bottom: 15px; }
+        
+        .buy-btn {
+            background: #00a884; color: white; border: none; width: 100%;
+            padding: 12px; border-radius: 8px; font-weight: bold; font-size: 16px; margin-bottom: 15px;
+        }
+        
+        .promo-area { display: flex; gap: 10px; margin-top: 10px; }
+        #promo-input { 
+            flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #333; 
+            background: #0b141a; color: white; text-align: center; letter-spacing: 1px;
+        }
+        .activate-btn {
+            background: #2a3942; color: #00a884; border: 1px solid #00a884;
+            padding: 0 15px; border-radius: 8px; font-weight: bold;
+        }
 
+        /* ЧАТ */
+        #chat-box { flex-grow: 1; overflow-y: auto; padding: 15px; padding-bottom: 160px; display: flex; flex-direction: column; gap: 12px; background-color: #0b141a; background-image: radial-gradient(#1f2c34 1px, transparent 1px); background-size: 20px 20px; -webkit-overflow-scrolling: touch; opacity: 0; transition: opacity 0.3s; }
+        #chat-box.loaded { opacity: 1; }
         .message-container { display: flex; flex-direction: column; max-width: 90%; position: relative; }
         .user-container { align-self: flex-end; }
         .ai-container { align-self: flex-start; }
-
-        .message { 
-            padding: 12px 16px; border-radius: 12px; 
-            font-size: 15px; line-height: 1.5; word-wrap: break-word;
-        }
+        .message { padding: 12px 16px; border-radius: 12px; font-size: 15px; line-height: 1.5; word-wrap: break-word; }
         .user { background-color: #005c4b; color: #fff; border-bottom-right-radius: 2px; }
         .ai { background-color: #202c33; color: #fff; border-bottom-left-radius: 2px; min-width: 150px;}
-        
-        /* Стилизация кода и защита от выполнения HTML */
-        .ai button, .ai input { display: none !important; } /* Скрываем кнопки внутри сообщений */
+        .ai button, .ai input { display: none !important; }
         .ai pre { background: #121212 !important; padding: 12px; border-radius: 8px; overflow-x: auto; margin: 10px 0; border: 1px solid #333; }
         .ai code { font-family: monospace; font-size: 13px; }
         .ai p code { background: #333; padding: 2px 5px; border-radius: 4px; color: #ff7b72; }
+        .copy-btn { background: #2a3942; border: 1px solid #444; color: #ccc; font-size: 11px; padding: 6px 12px; border-radius: 6px; margin-top: 6px; align-self: flex-start; cursor: pointer; font-weight: 500; display: block !important; }
+        
+        #scroll-btn { position: fixed; bottom: 140px; right: 20px; background: #202c33; color: #00a884; border: 1px solid #333; width: 45px; height: 45px; border-radius: 50%; display: none; justify-content: center; align-items: center; cursor: pointer; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 24px; font-weight: bold; }
 
-        /* Кнопка копирования */
-        .copy-btn {
-            background: #2a3942; border: 1px solid #444; color: #ccc;
-            font-size: 11px; padding: 6px 12px; border-radius: 6px;
-            margin-top: 6px; align-self: flex-start; cursor: pointer; font-weight: 500;
-            display: block !important;
-        }
-        .copy-btn:active { background: #00a884; color: #fff; border-color: #00a884; }
-
-        /* Кнопка "ВНИЗ" */
-        #scroll-btn {
-            position: fixed; bottom: 140px; right: 20px;
-            background: #202c33; color: #00a884; border: 1px solid #333;
-            width: 45px; height: 45px; border-radius: 50%;
-            display: none; justify-content: center; align-items: center;
-            cursor: pointer; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            font-size: 24px; font-weight: bold;
-        }
-
-        /* === ФУТЕР (НИЖНЯЯ ПАНЕЛЬ) === */
-        .footer-container {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            background-color: #0b141a; z-index: 150;
-            display: flex; flex-direction: column;
-            border-top: 1px solid #1f2c34;
-        }
+        .footer-container { position: absolute; bottom: 0; left: 0; width: 100%; background-color: #0b141a; z-index: 150; display: flex; flex-direction: column; border-top: 1px solid #1f2c34; }
         #status-bar { background-color: transparent; color: #00a884; padding: 2px 15px; font-size: 12px; font-style: italic; display: none; align-items: center; gap: 8px; }
         .pulse-dot { width: 8px; height: 8px; background-color: #00a884; border-radius: 50%; animation: pulse 1.5s infinite; }
-        
         #chips-bar { display: flex; gap: 8px; padding: 8px 15px; overflow-x: auto; scrollbar-width: none; white-space: nowrap; }
         .chip { background: #202c33; color: #aebac1; padding: 6px 14px; border-radius: 18px; font-size: 13px; border: 1px solid #333; cursor: pointer; flex-shrink: 0; }
         
@@ -119,69 +105,70 @@
         .icon-btn { background-color: #00a884; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; flex-shrink: 0; }
         .mic-active { background-color: #ff3b30 !important; animation: pulse 1s infinite; }
 
-        /* === НАСТРОЙКИ И PRO === */
-        #settings-panel { 
-            display: none; background: #2a3942; padding: 15px; 
-            position: absolute; top: 60px; left: 0; width: 100%; z-index: 160; 
-            border-bottom: 1px solid #333; box-shadow: 0 5px 10px rgba(0,0,0,0.5); 
-            max-height: 80vh; overflow-y: auto; 
-        }
+        #settings-panel { display: none; background: #2a3942; padding: 15px; position: absolute; top: 60px; left: 0; width: 100%; z-index: 160; border-bottom: 1px solid #333; box-shadow: 0 5px 10px rgba(0,0,0,0.5); }
         input#system-prompt { width: 100%; padding: 10px; border-radius: 8px; background: #111b21; color: #fff; margin-bottom: 10px; border:none;}
         .save-btn { background: #00a884; color: #111b21; border: none; padding: 10px; border-radius: 5px; width: 100%; font-weight: bold; margin-bottom: 10px; }
         
-        #vip-code-input { 
-            width: 100%; padding: 10px; border-radius: 8px; 
-            background: #111b21; color: #FFD700; border: 1px solid #FFD700; 
-            margin-bottom: 10px; text-align: center; letter-spacing: 2px; font-weight: bold;
-        }
-        
-        #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 10px; position: fixed; z-index: 300; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: opacity 0.3s; }
+        #toast { visibility: hidden; min-width: 200px; background-color: #333; color: #fff; text-align: center; border-radius: 5px; padding: 10px; position: fixed; z-index: 3000; left: 50%; bottom: 100px; transform: translateX(-50%); font-size: 14px; opacity: 0; transition: opacity 0.3s; }
         #toast.show { visibility: visible; opacity: 1; }
     </style>
 </head>
 <body>
 
-    <!-- Экран загрузки -->
     <div id="loader">
         <div class="spinner"></div>
-        <div style="color: #00a884;">Загрузка системы...</div>
+        <div style="color: #00a884;">Загрузка...</div>
     </div>
 
-    <!-- Шапка -->
+    <!-- ОКНО ПОДПИСКИ -->
+    <div id="sub-modal">
+        <div class="sub-card">
+            <span class="close-modal" onclick="document.getElementById('sub-modal').style.display='none'">&times;</span>
+            <h2 style="color: #00a884; margin: 0;">RampaGPT <span style="color:#fff">PRO</span></h2>
+            
+            <div class="plan-box">
+                <div class="plan-title">🧠 Модель GPT-4o</div>
+                <div style="font-size:12px; color:#aaa;">Самая умная и быстрая</div>
+                <div class="plan-price">199₽ <span style="font-size:14px; color:#777; font-weight:normal">/ навсегда</span></div>
+                <div class="plan-features">
+                    ✅ Решение сложных задач<br>
+                    ✅ Генерация длинного кода<br>
+                    ✅ Приоритетная скорость
+                </div>
+                <!-- Ссылка на оплату -->
+                <button class="buy-btn" onclick="window.open('https://boosty.to/', '_blank')">Купить доступ</button>
+            </div>
+
+            <div style="color: #aaa; font-size: 12px; margin-bottom: 5px;">Уже есть промокод?</div>
+            <div class="promo-area">
+                <input type="text" id="promo-input" placeholder="Введите код">
+                <button class="activate-btn" onclick="activatePromo()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <header>
         <h1>RampaGPT <span class="pro-badge">PRO</span></h1>
-        <div>
+        <div class="header-actions">
+            <!-- КНОПКА ПОДПИСКИ -->
+            <button class="header-btn" onclick="document.getElementById('sub-modal').style.display='flex'">💎</button>
             <button class="header-btn" onclick="toggleSettings()">⚙️</button>
             <button class="header-btn" onclick="clearHistory()">🗑️</button>
         </div>
     </header>
 
-    <!-- Панель настроек -->
     <div id="settings-panel">
-        <label style="color:#aaa; font-size:12px;">Роль:</label>
+        <label style="color:#aaa; font-size:12px;">Роль ассистента:</label>
         <input type="text" id="system-prompt" value="Ты умный ассистент." placeholder="Роль...">
-        <button class="save-btn" onclick="toggleSettings()">Сохранить настройки</button>
-        
+        <button class="save-btn" onclick="toggleSettings()">Сохранить</button>
         <hr style="border: 0; border-top: 1px solid #444; margin: 15px 0;">
-        
-        <!-- PRO Блок -->
-        <div style="background: #111; padding: 12px; border-radius: 10px; border: 1px solid #333;">
-            <h3 style="margin: 0 0 10px 0; color: #FFD700; text-align: center; font-size: 16px;">👑 RampaGPT PRO</h3>
-            <p style="color: #ccc; font-size: 12px; margin-bottom: 10px; text-align: center;">Включи GPT-4o. Введи код доступа:</p>
-            <input type="text" id="vip-code-input" placeholder="Введи код" onchange="saveVipCode()">
-            <!-- Ссылка на донат -->
-            <button class="save-btn" style="background: #FFD700; color: #000; margin-bottom: 0;" onclick="window.open('https://www.donationalerts.com/r/scybon')">🛒 Купить PRO-код</button>
-        </div>
-        
-        <p style="color: #555; font-size: 10px; text-align: center; margin-top: 15px;">Версия v2.4 Ultimate</p>
+        <p style="color: #555; font-size: 10px; text-align: center;">Версия v2.5</p>
     </div>
 
-    <!-- Основные блоки -->
     <div id="chat-box"></div>
     <div id="toast"></div>
     <div id="scroll-btn" onclick="forceScrollBottom()">⬇</div>
 
-    <!-- Футер -->
     <div class="footer-container">
         <div id="status-bar"><div class="pulse-dot"></div><span>Печатает...</span></div>
         <div id="chips-bar">
@@ -197,19 +184,17 @@
         </div>
     </div>
 
-    <!-- Библиотеки JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 
     <script>
-        // === НАСТРОЙКИ СЕРВЕРА ===
         const WORKER_URL = "https://delicate-limit-15a4.dimpstik12.workers.dev";
-        const STORAGE_KEY = 'rampa_v2_4_ultimate';
+        const STORAGE_KEY = 'rampa_v2_5';
         
         let conversationHistory = [];
         let isTouching = false; 
 
-        // === ИНИЦИАЛИЗАЦИЯ (Загрузка) ===
+        // Инициализация
         let checkInterval = setInterval(() => {
             if (typeof marked !== 'undefined' && typeof hljs !== 'undefined') {
                 clearInterval(checkInterval);
@@ -222,11 +207,29 @@
                 document.getElementById('loader').style.display = 'none';
                 document.getElementById('chat-box').classList.add('loaded');
                 loadHistory();
-                loadVipStatus();
+                checkVip();
             }
         }, 100);
 
-        // === ИСТОРИЯ И VIP СТАТУС ===
+        function checkVip() {
+            if (localStorage.getItem('rampa_vip_code')) {
+                document.body.classList.add('pro-active');
+            }
+        }
+
+        // Активация промокода
+        function activatePromo() {
+            const code = document.getElementById('promo-input').value.trim();
+            if (code.length > 3) {
+                localStorage.setItem('rampa_vip_code', code);
+                document.body.classList.add('pro-active');
+                showToast("Промокод сохранен! ✅");
+                document.getElementById('sub-modal').style.display = 'none';
+            } else {
+                showToast("Слишком короткий код ❌");
+            }
+        }
+
         function loadHistory() {
             const saved = localStorage.getItem(STORAGE_KEY);
             const savedPrompt = localStorage.getItem('rampa_prompt');
@@ -238,33 +241,16 @@
                 try {
                     conversationHistory = JSON.parse(saved);
                     conversationHistory.forEach(msg => {
-                        // ВАЖНО: При загрузке сразу рендерим HTML (true), чтобы не было багов
                         if (msg.role !== 'system') appendMessageToUI(msg.role, msg.content, true);
                     });
                 } catch(e) {}
                 setTimeout(forceScrollBottom, 100);
             } else {
                 conversationHistory = [{ role: "system", content: document.getElementById('system-prompt').value }];
-                appendMessageToUI('assistant', 'Привет! Я RampaGPT.', true);
+                appendMessageToUI('assistant', 'Привет! Я RampaGPT. Чем помочь?', true);
             }
         }
 
-        function saveVipCode() {
-            const code = document.getElementById('vip-code-input').value.trim();
-            localStorage.setItem('rampa_vip_code', code);
-            loadVipStatus();
-            showToast("Код сохранен");
-        }
-
-        function loadVipStatus() {
-            const code = localStorage.getItem('rampa_vip_code');
-            if (code) {
-                document.getElementById('vip-code-input').value = code;
-                if(code.length > 3) document.body.classList.add('pro-active');
-            }
-        }
-
-        // === ОТПРАВКА СООБЩЕНИЙ ===
         async function sendMessage() {
             const text = document.getElementById('user-input').value.trim();
             if (!text) return;
@@ -283,13 +269,12 @@
             const vipCode = localStorage.getItem('rampa_vip_code') || "";
 
             try {
-                // Запрос к твоему Cloudflare
                 const response = await fetch(WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         messages: conversationHistory,
-                        vipCode: vipCode // Отправляем пароль
+                        vipCode: vipCode 
                     })
                 });
 
@@ -300,35 +285,25 @@
                     appendMessageToUI('assistant', `Ошибка: ${data.error.message || 'Error'}`, true);
                 } else {
                     const aiContent = data.choices[0].message.content;
-                    
-                    // Если сервер подтвердил PRO модель
                     if (data.used_model === 'gpt-4o') document.body.classList.add('pro-active');
 
                     conversationHistory.push({ role: "assistant", content: aiContent });
                     saveToStorage();
 
-                    // Создаем пустой блок для печати
                     const msgDiv = appendMessageToUI('assistant', '', false);
                     let i = 0; let currentText = "";
-                    
-                    // Эффект печатной машинки
                     function typeWriter() {
                         if (i < aiContent.length) {
                             currentText += aiContent.charAt(i);
                             msgDiv.innerText = currentText; 
-                            
-                            // Скроллим, только если палец не на экране
                             if (!isTouching) document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
                             i++;
                             setTimeout(typeWriter, 5); 
                         } else {
-                            // Финал: превращаем текст в красивый код
                             msgDiv.innerHTML = marked.parse(aiContent);
                             document.getElementById('send-btn').disabled = false;
-                            
                             const btn = msgDiv.parentElement.querySelector('.copy-btn');
                             btn.onclick = function() { copyText(aiContent, this); };
-                            
                             if (!isTouching) forceScrollBottom();
                         }
                     }
@@ -341,22 +316,13 @@
             }
         }
 
-        // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
         function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(conversationHistory)); localStorage.setItem('rampa_prompt', document.getElementById('system-prompt').value); }
         function clearHistory() { if(confirm('Очистить?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); } }
         function toggleSettings() { const p = document.getElementById('settings-panel'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; saveToStorage(); }
         function setInput(text) { const i = document.getElementById('user-input'); i.value = text; i.focus(); }
         function showToast(m) { const t = document.getElementById("toast"); t.innerText = m; t.className = "show"; setTimeout(()=>t.className="", 3000); }
+        function copyText(t, b) { const a = document.createElement("textarea"); a.value = t; a.style.position="fixed"; a.style.left="-9999px"; document.body.appendChild(a); a.focus(); a.select(); try{document.execCommand('copy'); b.innerText="Скопировано!"; setTimeout(()=>b.innerText="Копировать",2000);}catch(e){} document.body.removeChild(a); }
         
-        function copyText(t, b) { 
-            const a = document.createElement("textarea"); a.value = t; a.style.position="fixed"; a.style.left="-9999px"; 
-            document.body.appendChild(a); a.focus(); a.select(); 
-            try{ document.execCommand('copy'); b.innerText="Скопировано!"; setTimeout(()=>b.innerText="Копировать",2000);}
-            catch(e){showToast("Error");} 
-            document.body.removeChild(a); 
-        }
-        
-        // Логика скролла
         const chatBoxEl = document.getElementById('chat-box');
         const scrollBtnEl = document.getElementById('scroll-btn');
         chatBoxEl.addEventListener('touchstart', () => { isTouching = true; });
@@ -365,18 +331,11 @@
         function checkScroll(){ if((chatBoxEl.scrollHeight - chatBoxEl.scrollTop - chatBoxEl.clientHeight)>100) scrollBtnEl.style.display='flex'; else scrollBtnEl.style.display='none'; }
         function forceScrollBottom(){ chatBoxEl.scrollTop = chatBoxEl.scrollHeight; scrollBtnEl.style.display='none'; }
         
-        // Создание пузырей сообщений
         function appendMessageToUI(role, text, renderHtmlNow) {
             const c = document.createElement('div'); c.className = `message-container ${role === 'user' ? 'user-container' : 'ai-container'}`;
             const m = document.createElement('div'); m.className = `message ${role === 'user' ? 'user' : 'ai'}`;
             c.appendChild(m); document.getElementById('chat-box').appendChild(c);
-            
-            if (role === 'assistant') { 
-                const b = document.createElement('button'); b.innerText = "Копировать"; b.className = "copy-btn"; 
-                b.onclick = function() { copyText(text, this); }; 
-                c.appendChild(b); 
-            }
-            
+            if (role === 'assistant') { const b = document.createElement('button'); b.innerText = "Копировать"; b.className = "copy-btn"; b.onclick = function() { copyText(text, this); }; c.appendChild(b); }
             if (renderHtmlNow) { m.innerHTML = marked.parse(text); } else { m.innerText = text; }
             return m;
         }
